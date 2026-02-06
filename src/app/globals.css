@@ -1,26 +1,118 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-dm-sans);
+  --font-mono: var(--font-jetbrains);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@theme {
+  /* Dark theme defaults — overridden by [data-theme="light"] below */
+  --color-surface-0: #0c0e12;
+  --color-surface-1: #12151b;
+  --color-surface-2: #181c24;
+  --color-surface-3: #1e232d;
+  --color-text-primary: #e8eaed;
+  --color-text-secondary: #8b919e;
+  --color-text-muted: #555b69;
+  --color-border: #252a35;
+  --color-border-subtle: #1c2029;
+  --color-accent-amber: #e8a849;
+  --color-accent-green: #3dd68c;
+  --color-accent-red: #e85d75;
+  --color-accent-blue: #5b9cf5;
+  --color-high-value-bg: #e85d750f;
+  --color-high-value-border: #e85d754d;
+  --color-high-value-text: #e85d75;
+}
+
+/* Toggle track/thumb (only used in inline styles, not Tailwind utilities) */
+:root {
+  --toggle-track: #252a35;
+  --toggle-thumb: #e8eaed;
+}
+
+/* Light theme overrides — unlayered CSS wins over @layer theme */
+[data-theme="light"] {
+  --color-surface-0: #f5f1ec;
+  --color-surface-1: #ffffff;
+  --color-surface-2: #f9f7f4;
+  --color-surface-3: #eeeae5;
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #6b6b6b;
+  --color-text-muted: #9b9b9b;
+  --color-border: #e0dbd5;
+  --color-border-subtle: #ebe7e1;
+  --color-accent-amber: #c47a1a;
+  --color-accent-green: #1a8a4a;
+  --color-accent-red: #c43a52;
+  --color-accent-blue: #3a72c4;
+  --color-high-value-bg: #c43a520d;
+  --color-high-value-border: #c43a5240;
+  --color-high-value-text: #c43a52;
+  --toggle-track: #1a1a1a;
+  --toggle-thumb: #f5f1ec;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-surface-0);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* Noise grain */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--color-surface-1); }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-muted); }
+
+/* Animations */
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232, 168, 73, 0); }
+  50% { box-shadow: 0 0 14px 2px rgba(232, 168, 73, 0.12); }
+}
+[data-theme="light"] .btn-clear-pulse {
+  animation: pulseGlowLight 2.5s ease-in-out infinite;
+}
+@keyframes pulseGlowLight {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(196, 122, 26, 0); }
+  50% { box-shadow: 0 0 14px 2px rgba(196, 122, 26, 0.1); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideInRow {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-fade-in { animation: fadeIn 0.5s ease-out both; }
+.animate-row-in { animation: slideInRow 0.3s ease-out both; }
+.btn-clear-pulse { animation: pulseGlow 2.5s ease-in-out infinite; }
+.processing-spinner { animation: spin 0.8s linear infinite; }
+
+/* Logo theming */
+.logo-themed {
+  filter: invert(1);
+  transition: filter 0.3s ease;
+}
+[data-theme="light"] .logo-themed {
+  filter: none;
 }

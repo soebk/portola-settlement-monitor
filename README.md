@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Portola Settlement Monitor
 
-## Getting Started
+A real-time settlement monitoring dashboard built as a take-home project for Portola. Displays transaction data with live streaming, compliance controls, and multiple UI theme variants.
 
-First, run the development server:
+## Setup
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Features
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Core Dashboard
+- **Transaction Ledger** — 50 static transactions + real-time streaming of new transactions (every 2 seconds)
+- **Summary Stats** — Total volume, pending count/value, cleared count, failed count
+- **Clear Funds** — One-click clearing for pending transactions with 1.5s mock API delay, disabled state while processing
+- **Status Badges** — Color-coded Pending (amber), Cleared (green), Failed (red)
 
-## Learn More
+### Compliance & Security
+- **High-Value Flagging** — Transactions over $10,000 are visually flagged with an "HV" badge, highlighted row, and amber amount text
+- **Super Admin Toggle** — When OFF (default), high-value "Clear Funds" buttons are locked. When ON, all transactions are clearable
+- **22 of 50 base transactions are high-value** for easy demonstration
 
-To learn more about Next.js, take a look at the following resources:
+### Live Streaming
+- **Live Mode** — New transactions stream in every 2 seconds at the top of the ledger
+- **Hover-to-Pause** — Hovering over table rows pauses the stream, buffering incoming transactions. A "X new" badge appears to flush the buffer
+- **Manual Mode** — Pauses auto-streaming. New transactions buffer and can be flushed manually via the refresh button
+- **Dark/Light Mode** — Full theme toggle in the header
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Theme Switcher (Phase 4)
+- **6 UI Themes** — Default, Terminal, Stripe, Luxury, Brutalist, Portola Brand
+- **Settings Gear** — Opens a theme picker modal with color swatches and descriptions
+- **Lazy Loaded** — Alternate themes use `React.lazy()` + `Suspense` for code splitting
+- **Persisted** — Theme choice saved to `localStorage` across sessions
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Architecture
 
-## Deploy on Vercel
+```
+src/
+├── app/
+│   ├── page.tsx          # Main dashboard (state, streaming, theme routing)
+│   ├── layout.tsx         # Root layout with fonts
+│   └── globals.css        # Global styles, logo theming
+├── components/
+│   ├── ThemePicker.tsx    # Theme selection modal
+│   └── themes/
+│       ├── types.ts       # Shared ThemeProps interface, ThemeId, THEME_OPTIONS
+│       ├── TerminalTheme.tsx
+│       ├── StripeTheme.tsx
+│       ├── LuxuryTheme.tsx
+│       ├── BrutalistTheme.tsx
+│       └── PortolaBrandTheme.tsx
+├── lib/
+│   ├── mockData.ts        # 50 transactions, types, HIGH_VALUE_THRESHOLD
+│   └── mockApi.ts         # clearFunds() (1.5s delay), generateTransaction()
+└── public/
+    └── logo.svg           # Portola logo
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Tech Stack
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Next.js 16** (App Router, Turbopack)
+- **React 19** with TypeScript
+- **Tailwind CSS v4**
+- Zero external UI libraries — all components are custom-built with inline styles
+
+## Trade-offs & Notes
+
+- **Inline styles over CSS modules** — Chose inline styles for rapid iteration and self-contained theme components. Each theme is a single file with no external style dependencies, making them easy to swap and compare. In production, I'd extract to CSS modules or a styled-components approach for better maintainability.
+- **No virtualization** — The transaction list renders all rows. With 50-150 transactions this is fine, but at scale (10k+) I'd add windowing (e.g., `react-window`).
+- **Mock API over real backend** — `setTimeout`-based mock keeps the project self-contained with no server dependencies. The `clearFunds()` and `generateTransaction()` functions are structured to be easily swapped for real API calls.
+- **Theme components are presentational** — All state lives in `page.tsx`. Theme components receive props and render. This makes adding new themes trivial (implement `ThemeProps` interface) and keeps state management centralized.
+- **No tests** — Given the time constraints, I prioritized a polished, feature-complete UI over test coverage. With more time, I'd add unit tests for the mock API, integration tests for the streaming logic, and visual regression tests for each theme.
+- **No error boundaries** — The lazy-loaded themes would benefit from error boundaries for graceful fallback if a theme component fails to load.
+
+## What I'd Improve With More Time
+
+1. **Keyboard navigation** — Full arrow-key navigation through the transaction table
+2. **Search/filter** — Filter by client name, amount range, status
+3. **Transaction detail panel** — Click a row to see full transaction details in a slide-out panel
+4. **Animations** — Row entrance animations for live-streamed transactions (currently instant)
+5. **Responsive design** — Currently optimized for desktop; would add mobile breakpoints
+6. **Accessibility audit** — ARIA labels, focus management, screen reader testing
