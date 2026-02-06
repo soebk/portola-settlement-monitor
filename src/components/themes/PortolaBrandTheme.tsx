@@ -6,7 +6,8 @@ import type { ThemeProps } from "./types";
 const fmt = (n: number) => "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtTime = (t: string) => new Date(t).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
 
-export default function PortolaBrandTheme({ transactions, processing, stats, superAdmin, onToggleSuperAdmin, onClearFunds }: ThemeProps) {
+export default function PortolaBrandTheme({ transactions, processing, stats, superAdmin, onToggleSuperAdmin, onClearFunds, selected, onToggleSelect, onToggleSelectAll, onClearSelected, batchProcessing }: ThemeProps) {
+  const selectablePending = transactions.filter((t) => t.status === "Pending" && !(t.amount > HIGH_VALUE_THRESHOLD && !superAdmin));
   const brand = "#6b9080";
   const brandDark = "#4a7260";
   const brandLight = "#e8f0ec";
@@ -60,10 +61,18 @@ export default function PortolaBrandTheme({ transactions, processing, stats, sup
         <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8e5", overflow: "hidden" }}>
           <div style={{ padding: "16px 20px", borderBottom: "1px solid #e2e8e5", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontWeight: 700, fontSize: 16 }}>Transactions</span>
+            {selected.size > 0 && (
+              <button onClick={onClearSelected} disabled={batchProcessing} style={{ background: batchProcessing ? "#edf2f7" : brand, color: batchProcessing ? "#a0aec0" : "#fff", border: "none", padding: "6px 16px", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: batchProcessing ? "not-allowed" : "pointer" }}>
+                {batchProcessing ? "Processing..." : `Clear Selected (${selected.size})`}
+              </button>
+            )}
           </div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: brandLight }}>
+                <th style={{ padding: "10px 8px 10px 20px", width: 32 }}>
+                  <input type="checkbox" checked={selectablePending.length > 0 && selectablePending.every((t) => selected.has(t.id))} onChange={onToggleSelectAll} style={{ accentColor: brand, cursor: "pointer" }} />
+                </th>
                 {["ID", "Client", "Amount", "Status", "Time", "Action"].map((h) => (
                   <th key={h} style={{ padding: "10px 20px", textAlign: "left", fontSize: 11, fontWeight: 600, color: brandDark, letterSpacing: "0.5px", textTransform: "uppercase" as const }}>{h}</th>
                 ))}
@@ -76,6 +85,11 @@ export default function PortolaBrandTheme({ transactions, processing, stats, sup
                 const isProcessing = processing.has(t.id);
                 return (
                   <tr key={t.id} style={{ borderBottom: "1px solid #f0f2f1", background: hv ? "#fef6e7" : "transparent", transition: "background 0.1s" }} onMouseEnter={(e) => (e.currentTarget.style.background = hv ? "#fdf0d5" : "#f9fbfa")} onMouseLeave={(e) => (e.currentTarget.style.background = hv ? "#fef6e7" : "transparent")}>
+                    <td style={{ padding: "11px 8px 11px 20px", width: 32 }}>
+                      {t.status === "Pending" && !locked ? (
+                        <input type="checkbox" checked={selected.has(t.id)} onChange={() => onToggleSelect(t.id)} style={{ accentColor: brand, cursor: "pointer" }} />
+                      ) : null}
+                    </td>
                     <td style={{ padding: "11px 20px", fontSize: 13, color: "#a0aec0" }}>{t.id}</td>
                     <td style={{ padding: "11px 20px", fontSize: 14, fontWeight: 500 }}>
                       {t.clientName}

@@ -1,9 +1,14 @@
 import { Transaction } from "./mockData";
 
 export async function clearFunds(transactionId: string): Promise<{ success: boolean }> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     setTimeout(() => {
-      resolve({ success: true });
+      // 10% chance of failure (The Chaos)
+      if (Math.random() < 0.1) {
+        reject(new Error(`Settlement failed for ${transactionId}`));
+      } else {
+        resolve({ success: true });
+      }
     }, 1500);
   });
 }

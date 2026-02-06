@@ -6,7 +6,8 @@ import type { ThemeProps } from "./types";
 const fmt = (n: number) => "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtTime = (t: string) => new Date(t).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
 
-export default function TerminalTheme({ transactions, processing, stats, superAdmin, onToggleSuperAdmin, onClearFunds }: ThemeProps) {
+export default function TerminalTheme({ transactions, processing, stats, superAdmin, onToggleSuperAdmin, onClearFunds, selected, onToggleSelect, onToggleSelectAll, onClearSelected, batchProcessing }: ThemeProps) {
+  const selectablePending = transactions.filter((t) => t.status === "Pending" && !(t.amount > HIGH_VALUE_THRESHOLD && !superAdmin));
   return (
     <div style={{ background: "#0a0e14", color: "#c5cdd9", fontFamily: "'IBM Plex Mono', 'Courier New', monospace", minHeight: "100vh", padding: "16px", fontSize: "13px" }}>
       <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -47,11 +48,23 @@ export default function TerminalTheme({ transactions, processing, stats, superAd
         ))}
       </div>
 
+      {/* Batch clear */}
+      {selected.size > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <button onClick={onClearSelected} disabled={batchProcessing} style={{ background: "rgba(61,153,112,0.15)", color: "#3d9970", border: "1px solid rgba(61,153,112,0.3)", padding: "5px 14px", borderRadius: 3, fontSize: "11px", letterSpacing: "1px", cursor: batchProcessing ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
+            {batchProcessing ? "PROCESSING..." : `CLEAR SELECTED (${selected.size})`}
+          </button>
+        </div>
+      )}
+
       {/* Table */}
       <div style={{ border: "1px solid #1e2836", borderRadius: 4, overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#0f1520", borderBottom: "1px solid #1e2836" }}>
+              <th style={{ padding: "8px 8px 8px 12px", width: 32 }}>
+                <input type="checkbox" checked={selectablePending.length > 0 && selectablePending.every((t) => selected.has(t.id))} onChange={onToggleSelectAll} style={{ accentColor: "#3d9970", cursor: "pointer" }} />
+              </th>
               {["ID", "CLIENT", "AMOUNT", "STATUS", "TIME", "ACTION"].map((h) => (
                 <th key={h} style={{ padding: "8px 12px", textAlign: "left", color: "#455568", fontSize: "10px", letterSpacing: "1.5px", fontWeight: 500 }}>{h}</th>
               ))}
@@ -73,6 +86,11 @@ export default function TerminalTheme({ transactions, processing, stats, superAd
                   onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(61,153,112,0.08)")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = isHighValue ? "rgba(230,126,34,0.06)" : i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.01)")}
                 >
+                  <td style={{ padding: "7px 8px 7px 12px", width: 32 }}>
+                    {t.status === "Pending" && !isLocked ? (
+                      <input type="checkbox" checked={selected.has(t.id)} onChange={() => onToggleSelect(t.id)} style={{ accentColor: "#3d9970", cursor: "pointer" }} />
+                    ) : null}
+                  </td>
                   <td style={{ padding: "7px 12px", color: "#455568" }}>{t.id}</td>
                   <td style={{ padding: "7px 12px", color: "#c5cdd9" }}>
                     {t.clientName}

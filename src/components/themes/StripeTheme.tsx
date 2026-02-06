@@ -10,7 +10,8 @@ const initials = (name: string) => name.split(" ").map((w) => w[0]).join("").sli
 const avatarColors = ["#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#3b82f6", "#ef4444", "#14b8a6"];
 const getColor = (name: string) => avatarColors[name.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % avatarColors.length];
 
-export default function StripeTheme({ transactions, processing, stats, superAdmin, onToggleSuperAdmin, onClearFunds }: ThemeProps) {
+export default function StripeTheme({ transactions, processing, stats, superAdmin, onToggleSuperAdmin, onClearFunds, selected, onToggleSelect, onToggleSelectAll, onClearSelected, batchProcessing }: ThemeProps) {
+  const selectablePending = transactions.filter((t) => t.status === "Pending" && !(t.amount > HIGH_VALUE_THRESHOLD && !superAdmin));
   return (
     <div style={{ background: "#f8f9fb", fontFamily: "'DM Sans', -apple-system, sans-serif", minHeight: "100vh", color: "#1a1a2e" }}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -58,11 +59,21 @@ export default function StripeTheme({ transactions, processing, stats, superAdmi
         <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e8eaed", overflow: "hidden" }}>
           <div style={{ padding: "18px 22px", borderBottom: "1px solid #f1f3f5", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontWeight: 600, fontSize: 15 }}>Transactions</span>
-            <span style={{ fontSize: 12, color: "#94a3b8" }}>{stats.total} total</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              {selected.size > 0 && (
+                <button onClick={onClearSelected} disabled={batchProcessing} style={{ background: batchProcessing ? "#e0e7ff" : "#6366f1", color: "#fff", border: "none", padding: "6px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: batchProcessing ? "not-allowed" : "pointer" }}>
+                  {batchProcessing ? "Processing..." : `Clear Selected (${selected.size})`}
+                </button>
+              )}
+              <span style={{ fontSize: 12, color: "#94a3b8" }}>{stats.total} total</span>
+            </div>
           </div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid #f1f3f5" }}>
+                <th style={{ padding: "10px 10px 10px 22px", width: 32 }}>
+                  <input type="checkbox" checked={selectablePending.length > 0 && selectablePending.every((t) => selected.has(t.id))} onChange={onToggleSelectAll} style={{ accentColor: "#6366f1", cursor: "pointer" }} />
+                </th>
                 {["Client", "Amount", "Status", "Time", ""].map((h, i) => (
                   <th key={h || i} style={{ padding: "10px 22px", textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>{h}</th>
                 ))}
@@ -75,6 +86,11 @@ export default function StripeTheme({ transactions, processing, stats, superAdmi
                 const isProcessing = processing.has(t.id);
                 return (
                   <tr key={t.id} style={{ borderBottom: "1px solid #f8f9fb", transition: "background 0.1s" }} onMouseEnter={(e) => (e.currentTarget.style.background = "#fafbfd")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                    <td style={{ padding: "12px 10px 12px 22px", width: 32 }}>
+                      {t.status === "Pending" && !locked ? (
+                        <input type="checkbox" checked={selected.has(t.id)} onChange={() => onToggleSelect(t.id)} style={{ accentColor: "#6366f1", cursor: "pointer" }} />
+                      ) : null}
+                    </td>
                     <td style={{ padding: "12px 22px", display: "flex", alignItems: "center", gap: 12 }}>
                       <div style={{ width: 32, height: 32, borderRadius: "50%", background: getColor(t.clientName), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 600, color: "#fff", flexShrink: 0 }}>{initials(t.clientName)}</div>
                       <div>

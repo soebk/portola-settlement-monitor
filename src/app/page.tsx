@@ -131,6 +131,51 @@ function ThemeToggle({ theme, onToggle }: { theme: string; onToggle: () => void 
 type FeedMode = "streaming" | "manual";
 const MAX_TRANSACTIONS = 200;
 
+function ConfirmClearModal({ count, onConfirm, onCancel }: { count: number; onConfirm: () => void; onCancel: () => void }) {
+  const [typed, setTyped] = useState("");
+  return (
+    <div
+      style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
+      onClick={onCancel}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-surface-1 border border-border-subtle rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl"
+      >
+        <h3 className="text-lg font-semibold text-text-primary mb-2">Confirm Batch Clear</h3>
+        <p className="text-sm text-text-secondary mb-4">
+          You are about to clear <span className="font-mono font-semibold text-accent-amber">{count}</span> transaction{count !== 1 ? "s" : ""}. Type <span className="font-mono font-semibold text-text-primary">&quot;clear&quot;</span> to confirm.
+        </p>
+        <input
+          type="text"
+          value={typed}
+          onChange={(e) => setTyped(e.target.value)}
+          placeholder='Type "clear"'
+          autoFocus
+          className="w-full px-3 py-2 rounded-md text-sm font-mono bg-surface-0 border border-border text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-amber/50 mb-4"
+          onKeyDown={(e) => { if (e.key === "Enter" && typed.toLowerCase() === "clear") onConfirm(); if (e.key === "Escape") onCancel(); }}
+        />
+        <div className="flex gap-3 justify-end">
+          <button onClick={onCancel} className="px-4 py-2 rounded-md text-sm text-text-secondary hover:text-text-primary transition-colors cursor-pointer">
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={typed.toLowerCase() !== "clear"}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all cursor-pointer ${
+              typed.toLowerCase() === "clear"
+                ? "bg-accent-amber text-black hover:bg-accent-amber/90"
+                : "bg-surface-3 text-text-muted cursor-not-allowed"
+            }`}
+          >
+            Clear {count} Transaction{count !== 1 ? "s" : ""}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
   const [processing, setProcessing] = useState<Set<string>>(new Set());
@@ -138,6 +183,11 @@ export default function Home() {
   const [superAdmin, setSuperAdmin] = useState(false);
   const [uiTheme, setUiTheme] = useState<ThemeId>("default");
   const [showPicker, setShowPicker] = useState(false);
+
+  // Batch selection state
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [batchProcessing, setBatchProcessing] = useState(false);
+  const [showConfirmClear, setShowConfirmClear] = useState(false);
 
   // Load persisted UI theme from localStorage
   useEffect(() => {
@@ -229,10 +279,17 @@ export default function Home() {
 
   async function handleClearFunds(id: string) {
     setProcessing((prev) => new Set(prev).add(id));
-    const result = await clearFunds(id);
-    if (result.success) {
+    try {
+      const result = await clearFunds(id);
+      if (result.success) {
+        setTransactions((prev) =>
+          prev.map((tx) => (tx.id === id ? { ...tx, status: "Cleared" as const } : tx))
+        );
+      }
+    } catch {
+      // Individual failure: revert to Pending (already Pending) or mark Failed
       setTransactions((prev) =>
-        prev.map((tx) => (tx.id === id ? { ...tx, status: "Cleared" as const } : tx))
+        prev.map((tx) => (tx.id === id ? { ...tx, status: "Failed" as const } : tx))
       );
     }
     setProcessing((prev) => {
@@ -240,6 +297,75 @@ export default function Home() {
       next.delete(id);
       return next;
     });
+  }
+
+  // Batch selection helpers
+  const selectablePending = useMemo(() => {
+    return transactions.filter((t) => {
+      if (t.status !== "Pending") return false;
+      const isHighValue = t.amount > HIGH_VALUE_THRESHOLD;
+      if (isHighValue && !superAdmin) return false;
+      return true;
+    });
+  }, [transactions, superAdmin]);
+
+  function handleToggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function handleToggleSelectAll() {
+    const allSelected = selectablePending.length > 0 && selectablePending.every((t) => selected.has(t.id));
+    if (allSelected) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(selectablePending.map((t) => t.id)));
+    }
+  }
+
+  function handleClearSelectedClick() {
+    if (selected.size === 0) return;
+    setShowConfirmClear(true);
+  }
+
+  async function handleBatchClear() {
+    setShowConfirmClear(false);
+    const ids = Array.from(selected);
+    setBatchProcessing(true);
+    // Mark all as processing
+    setProcessing((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => next.add(id));
+      return next;
+    });
+    // Run all concurrently — each result handled independently
+    await Promise.allSettled(
+      ids.map(async (id) => {
+        try {
+          const result = await clearFunds(id);
+          if (result.success) {
+            setTransactions((prev) =>
+              prev.map((tx) => (tx.id === id ? { ...tx, status: "Cleared" as const } : tx))
+            );
+          }
+        } catch {
+          setTransactions((prev) =>
+            prev.map((tx) => (tx.id === id ? { ...tx, status: "Failed" as const } : tx))
+          );
+        } finally {
+          setProcessing((prev) => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
+        }
+      })
+    );
+    setSelected(new Set());
+    setBatchProcessing(false);
   }
 
   const rowBorderColor: Record<TransactionStatus, string> = {
@@ -257,6 +383,11 @@ export default function Home() {
     superAdmin,
     onToggleSuperAdmin: () => setSuperAdmin(!superAdmin),
     onClearFunds: handleClearFunds,
+    selected,
+    onToggleSelect: handleToggleSelect,
+    onToggleSelectAll: handleToggleSelectAll,
+    onClearSelected: handleClearSelectedClick,
+    batchProcessing,
   };
 
   // Alternate theme rendering
@@ -448,6 +579,21 @@ export default function Home() {
                   <span className="text-accent-amber">{stats.pending} awaiting clearance</span>
                 </span>
               )}
+
+              {/* Batch clear button */}
+              {selected.size > 0 && (
+                <button
+                  onClick={handleClearSelectedClick}
+                  disabled={batchProcessing}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium tracking-wide transition-all duration-200 cursor-pointer ${
+                    batchProcessing
+                      ? "bg-surface-3 text-text-muted border border-border cursor-not-allowed"
+                      : "bg-accent-amber/20 text-accent-amber border border-accent-amber/30 hover:bg-accent-amber/30"
+                  }`}
+                >
+                  {batchProcessing ? <><Spinner /> Processing…</> : `Clear Selected (${selected.size})`}
+                </button>
+              )}
             </div>
           </div>
 
@@ -455,7 +601,16 @@ export default function Home() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="px-5 py-2.5 text-left text-[10px] font-semibold uppercase tracking-[0.1em] text-text-muted">TXN ID</th>
+                  <th className="pl-5 pr-1 py-2.5 w-8">
+                    <input
+                      type="checkbox"
+                      checked={selectablePending.length > 0 && selectablePending.every((t) => selected.has(t.id))}
+                      onChange={handleToggleSelectAll}
+                      className="accent-[var(--accent-amber)] w-3.5 h-3.5 cursor-pointer"
+                      aria-label="Select all pending transactions"
+                    />
+                  </th>
+                  <th className="px-3 py-2.5 text-left text-[10px] font-semibold uppercase tracking-[0.1em] text-text-muted">TXN ID</th>
                   <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-[0.1em] text-text-muted">Client</th>
                   <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-[0.1em] text-text-muted">Amount</th>
                   <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-[0.1em] text-text-muted">Status</th>
@@ -483,7 +638,18 @@ export default function Home() {
                       `}
                       style={{ animationDelay: `${Math.min(i * 20, 400)}ms` }}
                     >
-                      <td className="px-5 py-3 text-[12px] font-mono font-medium text-text-secondary whitespace-nowrap">
+                      <td className="pl-5 pr-1 py-3 w-8">
+                        {tx.status === "Pending" && !isLocked ? (
+                          <input
+                            type="checkbox"
+                            checked={selected.has(tx.id)}
+                            onChange={() => handleToggleSelect(tx.id)}
+                            className="accent-[var(--accent-amber)] w-3.5 h-3.5 cursor-pointer"
+                            aria-label={`Select ${tx.id}`}
+                          />
+                        ) : null}
+                      </td>
+                      <td className="px-3 py-3 text-[12px] font-mono font-medium text-text-secondary whitespace-nowrap">
                         {tx.id}
                       </td>
                       <td className="px-4 py-3 text-[13px] text-text-primary whitespace-nowrap">
@@ -554,6 +720,7 @@ export default function Home() {
         </div>
       </main>
       {showPicker && <ThemePicker current={uiTheme} onSelect={handleUiThemeChange} onClose={() => setShowPicker(false)} />}
+      {showConfirmClear && <ConfirmClearModal count={selected.size} onConfirm={handleBatchClear} onCancel={() => setShowConfirmClear(false)} />}
     </div>
   );
 }

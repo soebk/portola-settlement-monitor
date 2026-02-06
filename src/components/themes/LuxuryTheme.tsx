@@ -6,7 +6,8 @@ import type { ThemeProps } from "./types";
 const fmt = (n: number) => "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtTime = (t: string) => new Date(t).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
 
-export default function LuxuryTheme({ transactions, processing, stats, superAdmin, onToggleSuperAdmin, onClearFunds }: ThemeProps) {
+export default function LuxuryTheme({ transactions, processing, stats, superAdmin, onToggleSuperAdmin, onClearFunds, selected, onToggleSelect, onToggleSelectAll, onClearSelected, batchProcessing }: ThemeProps) {
+  const selectablePending = transactions.filter((t) => t.status === "Pending" && !(t.amount > HIGH_VALUE_THRESHOLD && !superAdmin));
   return (
     <div style={{ background: "#0b1121", color: "#c8d1dc", fontFamily: "'Cormorant Garamond', Georgia, serif", minHeight: "100vh" }}>
       <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -32,12 +33,24 @@ export default function LuxuryTheme({ transactions, processing, stats, superAdmi
         </div>
       </div>
 
+      {/* Batch clear */}
+      {selected.size > 0 && (
+        <div style={{ padding: "16px 40px 0" }}>
+          <button onClick={onClearSelected} disabled={batchProcessing} style={{ background: batchProcessing ? "rgba(198,163,107,0.1)" : "linear-gradient(135deg, #c6a36b, #a07d45)", color: batchProcessing ? "#c6a36b" : "#0b1121", border: "none", padding: "8px 24px", borderRadius: 4, fontFamily: "'Outfit', sans-serif", fontSize: 11, fontWeight: 600, letterSpacing: "1px", cursor: batchProcessing ? "not-allowed" : "pointer" }}>
+            {batchProcessing ? "PROCESSING..." : `CLEAR SELECTED (${selected.size})`}
+          </button>
+        </div>
+      )}
+
       {/* Table */}
       <div style={{ padding: "32px 40px" }}>
         <div style={{ borderRadius: 4, overflow: "hidden", border: "1px solid rgba(198,163,107,0.1)" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "rgba(198,163,107,0.04)" }}>
+                <th style={{ padding: "14px 10px 14px 20px", width: 32, borderBottom: "1px solid rgba(198,163,107,0.08)" }}>
+                  <input type="checkbox" checked={selectablePending.length > 0 && selectablePending.every((t) => selected.has(t.id))} onChange={onToggleSelectAll} style={{ accentColor: "#c6a36b", cursor: "pointer" }} />
+                </th>
                 {["Transaction", "Client", "Amount", "Status", "Time", "Action"].map((h) => (
                   <th key={h} style={{ padding: "14px 20px", textAlign: "left", fontFamily: "'Outfit', sans-serif", fontSize: 10, color: "#5a6a7c", letterSpacing: "2px", fontWeight: 500, textTransform: "uppercase" as const, borderBottom: "1px solid rgba(198,163,107,0.08)" }}>{h}</th>
                 ))}
@@ -50,6 +63,11 @@ export default function LuxuryTheme({ transactions, processing, stats, superAdmi
                 const isProcessing = processing.has(t.id);
                 return (
                   <tr key={t.id} style={{ borderBottom: "1px solid rgba(198,163,107,0.05)", background: hv ? "rgba(198,163,107,0.03)" : "transparent", transition: "background 0.2s" }} onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(198,163,107,0.06)")} onMouseLeave={(e) => (e.currentTarget.style.background = hv ? "rgba(198,163,107,0.03)" : "transparent")}>
+                    <td style={{ padding: "14px 10px 14px 20px", width: 32 }}>
+                      {t.status === "Pending" && !locked ? (
+                        <input type="checkbox" checked={selected.has(t.id)} onChange={() => onToggleSelect(t.id)} style={{ accentColor: "#c6a36b", cursor: "pointer" }} />
+                      ) : null}
+                    </td>
                     <td style={{ padding: "14px 20px", fontFamily: "'Outfit', sans-serif", fontSize: 12, color: "#4a5568" }}>{t.id}</td>
                     <td style={{ padding: "14px 20px" }}>
                       <div style={{ fontSize: 15, color: "#e8dcc8", fontWeight: 500 }}>{t.clientName}</div>

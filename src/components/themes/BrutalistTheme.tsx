@@ -6,7 +6,8 @@ import type { ThemeProps } from "./types";
 const fmt = (n: number) => "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtTime = (t: string) => new Date(t).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
 
-export default function BrutalistTheme({ transactions, processing, stats, superAdmin, onToggleSuperAdmin, onClearFunds }: ThemeProps) {
+export default function BrutalistTheme({ transactions, processing, stats, superAdmin, onToggleSuperAdmin, onClearFunds, selected, onToggleSelect, onToggleSelectAll, onClearSelected, batchProcessing }: ThemeProps) {
+  const selectablePending = transactions.filter((t) => t.status === "Pending" && !(t.amount > HIGH_VALUE_THRESHOLD && !superAdmin));
   return (
     <div style={{ background: "#fff", color: "#000", fontFamily: "'Space Grotesk', 'Helvetica Neue', sans-serif", minHeight: "100vh" }}>
       <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -28,11 +29,23 @@ export default function BrutalistTheme({ transactions, processing, stats, superA
         </div>
       </div>
 
+      {/* Batch clear */}
+      {selected.size > 0 && (
+        <div style={{ padding: "16px 32px 0" }}>
+          <button onClick={onClearSelected} disabled={batchProcessing} style={{ background: batchProcessing ? "#fff" : "#000", color: batchProcessing ? "#888" : "#fff", border: "2px solid #000", padding: "6px 18px", fontSize: 11, fontWeight: 700, letterSpacing: "1px", cursor: batchProcessing ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
+            {batchProcessing ? "PROCESSING..." : `CLEAR SELECTED (${selected.size}) →`}
+          </button>
+        </div>
+      )}
+
       {/* Table */}
       <div style={{ padding: "0 32px" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ borderBottom: "2px solid #000" }}>
+              <th style={{ padding: "12px 8px 12px 0", width: 32 }}>
+                <input type="checkbox" checked={selectablePending.length > 0 && selectablePending.every((t) => selected.has(t.id))} onChange={onToggleSelectAll} style={{ cursor: "pointer" }} />
+              </th>
               {["ID", "CLIENT", "AMOUNT", "STATUS", "TIME", ""].map((h, i) => (
                 <th key={h || i} style={{ padding: "12px 0", textAlign: "left", fontSize: 10, fontWeight: 700, letterSpacing: "2px", color: "#888" }}>{h}</th>
               ))}
@@ -45,6 +58,11 @@ export default function BrutalistTheme({ transactions, processing, stats, superA
               const isProcessing = processing.has(t.id);
               return (
                 <tr key={t.id} style={{ borderBottom: "1px solid #eee" }} onMouseEnter={(e) => (e.currentTarget.style.background = "#fafafa")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                  <td style={{ padding: "10px 8px 10px 0", width: 32 }}>
+                    {t.status === "Pending" && !locked ? (
+                      <input type="checkbox" checked={selected.has(t.id)} onChange={() => onToggleSelect(t.id)} style={{ cursor: "pointer" }} />
+                    ) : null}
+                  </td>
                   <td style={{ padding: "10px 0", fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "#aaa" }}>{t.id}</td>
                   <td style={{ padding: "10px 0" }}>
                     <span style={{ fontWeight: 500, fontSize: 14 }}>{t.clientName}</span>

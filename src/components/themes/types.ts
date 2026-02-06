@@ -17,6 +17,12 @@ export interface ThemeProps {
   superAdmin: boolean;
   onToggleSuperAdmin: () => void;
   onClearFunds: (id: string) => void;
+  // Batch selection
+  selected: Set<string>;
+  onToggleSelect: (id: string) => void;
+  onToggleSelectAll: () => void;
+  onClearSelected: () => void;
+  batchProcessing: boolean;
 }
 
 export type ThemeId = "default" | "terminal" | "stripe" | "luxury" | "brutalist" | "portola-brand";

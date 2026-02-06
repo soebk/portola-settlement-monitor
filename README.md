@@ -30,7 +30,15 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - **Manual Mode** — Pauses auto-streaming. New transactions buffer and can be flushed manually via the refresh button
 - **Dark/Light Mode** — Full theme toggle in the header
 
-### Theme Switcher (Phase 4)
+### Batch Settlement
+- **Checkboxes** — Select individual pending transactions or use the header checkbox to select/deselect all
+- **Clear Selected** — Batch action button appears when transactions are selected, showing count
+- **Confirmation Modal** — Typing "clear" is required to confirm batch clearing (safety net for bulk operations)
+- **Concurrent Processing** — All selected transactions are cleared concurrently via `Promise.allSettled`
+- **Resilient Error Handling** — 10% random API failure rate. Successful clears become "Cleared", failures become "Failed", each handled independently
+- **High-value aware** — Locked high-value transactions are excluded from selection when Super Admin is off
+
+### Theme Switcher
 - **6 UI Themes** — Default, Terminal, Stripe, Luxury, Brutalist, Portola Brand
 - **Settings Gear** — Opens a theme picker modal with color swatches and descriptions
 - **Lazy Loaded** — Alternate themes use `React.lazy()` + `Suspense` for code splitting
