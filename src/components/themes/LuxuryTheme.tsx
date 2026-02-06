@@ -6,7 +6,27 @@ import type { ThemeProps } from "./types";
 const fmt = (n: number) => "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtTime = (t: string) => new Date(t).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
 
-export default function LuxuryTheme({ transactions, processing, stats, superAdmin, onToggleSuperAdmin, onClearFunds, selected, onToggleSelect, onToggleSelectAll, onClearSelected, batchProcessing }: ThemeProps) {
+export default function LuxuryTheme({
+  transactions,
+  processing,
+  stats,
+  superAdmin,
+  onToggleSuperAdmin,
+  onClearFunds,
+  selected,
+  onToggleSelect,
+  onToggleSelectAll,
+  onClearSelected,
+  batchProcessing,
+  feedMode,
+  onFeedModeChange,
+  bufferCount,
+  onFlushBuffer,
+  isPaused,
+  onTableMouseEnter,
+  onTableMouseLeave,
+  onOpenThemePicker,
+}: ThemeProps) {
   const selectablePending = transactions.filter((t) => t.status === "Pending" && !(t.amount > HIGH_VALUE_THRESHOLD && !superAdmin));
   return (
     <div style={{ background: "#0b1121", color: "#c8d1dc", fontFamily: "'Cormorant Garamond', Georgia, serif", minHeight: "100vh" }}>
@@ -30,6 +50,112 @@ export default function LuxuryTheme({ transactions, processing, stats, superAdmi
               <div style={{ width: 18, height: 18, borderRadius: 9, background: superAdmin ? "#fff" : "#3a4a5c", position: "absolute", top: 2, left: superAdmin ? 23 : 2, transition: "all 0.3s" }} />
             </div>
           </div>
+          <div style={{ width: 1, height: 36, background: "rgba(198,163,107,0.15)" }} />
+          <button
+            onClick={onOpenThemePicker}
+            style={{
+              background: "rgba(198,163,107,0.08)",
+              border: "1px solid rgba(198,163,107,0.2)",
+              color: "#c6a36b",
+              padding: "6px 14px",
+              borderRadius: 4,
+              fontFamily: "'Outfit', sans-serif",
+              fontSize: 11,
+              fontWeight: 500,
+              letterSpacing: "1px",
+              cursor: "pointer",
+              transition: "all 0.2s",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <span style={{ fontSize: 13 }}>&#9881;</span>
+            THEMES
+          </button>
+        </div>
+      </div>
+
+      {/* Streaming Controls */}
+      <div style={{ padding: "14px 40px", borderBottom: "1px solid rgba(198,163,107,0.08)", display: "flex", alignItems: "center", gap: 20 }}>
+        {/* Live / Manual segmented toggle */}
+        <div style={{ display: "flex", borderRadius: 4, overflow: "hidden", border: "1px solid rgba(198,163,107,0.2)" }}>
+          <button
+            onClick={() => onFeedModeChange("streaming")}
+            style={{
+              background: feedMode === "streaming" ? "linear-gradient(135deg, #c6a36b, #a07d45)" : "transparent",
+              color: feedMode === "streaming" ? "#0b1121" : "#4a5568",
+              border: "none",
+              padding: "6px 16px",
+              fontFamily: "'Outfit', sans-serif",
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: "1px",
+              cursor: "pointer",
+              transition: "all 0.2s",
+            }}
+          >
+            LIVE
+          </button>
+          <button
+            onClick={() => onFeedModeChange("manual")}
+            style={{
+              background: feedMode === "manual" ? "linear-gradient(135deg, #c6a36b, #a07d45)" : "transparent",
+              color: feedMode === "manual" ? "#0b1121" : "#4a5568",
+              border: "none",
+              borderLeft: "1px solid rgba(198,163,107,0.2)",
+              padding: "6px 16px",
+              fontFamily: "'Outfit', sans-serif",
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: "1px",
+              cursor: "pointer",
+              transition: "all 0.2s",
+            }}
+          >
+            MANUAL
+          </button>
+        </div>
+
+        {/* Buffer badge */}
+        {bufferCount > 0 && (
+          <button
+            onClick={onFlushBuffer}
+            style={{
+              background: "rgba(198,163,107,0.12)",
+              border: "1px solid rgba(198,163,107,0.25)",
+              color: "#c6a36b",
+              padding: "5px 14px",
+              borderRadius: 4,
+              fontFamily: "'Outfit', sans-serif",
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: "1px",
+              cursor: "pointer",
+              transition: "all 0.2s",
+              animation: "luxPulse 2s infinite",
+            }}
+          >
+            {bufferCount} NEW
+          </button>
+        )}
+
+        {/* Live / Paused indicator */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
+          <span
+            style={{
+              display: "inline-block",
+              width: 7,
+              height: 7,
+              borderRadius: "50%",
+              background: isPaused ? "#cf6b6b" : "#6bcf97",
+              boxShadow: isPaused ? "0 0 6px rgba(207,107,107,0.4)" : "0 0 6px rgba(107,207,151,0.4)",
+              animation: isPaused ? "none" : "luxPulse 2s infinite",
+            }}
+          />
+          <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 11, color: isPaused ? "#cf6b6b" : "#6bcf97", letterSpacing: "1px", fontWeight: 500 }}>
+            {isPaused ? "PAUSED" : "LIVE"}
+          </span>
         </div>
       </div>
 
@@ -56,7 +182,7 @@ export default function LuxuryTheme({ transactions, processing, stats, superAdmi
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody onMouseEnter={onTableMouseEnter} onMouseLeave={onTableMouseLeave}>
               {transactions.map((t) => {
                 const hv = t.amount > HIGH_VALUE_THRESHOLD;
                 const locked = hv && !superAdmin;
@@ -71,7 +197,7 @@ export default function LuxuryTheme({ transactions, processing, stats, superAdmi
                     <td style={{ padding: "14px 20px", fontFamily: "'Outfit', sans-serif", fontSize: 12, color: "#4a5568" }}>{t.id}</td>
                     <td style={{ padding: "14px 20px" }}>
                       <div style={{ fontSize: 15, color: "#e8dcc8", fontWeight: 500 }}>{t.clientName}</div>
-                      {hv && <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 9, color: "#c6a36b", letterSpacing: "1.5px", marginTop: 3 }}>◆ HIGH VALUE</div>}
+                      {hv && <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 9, color: "#c6a36b", letterSpacing: "1.5px", marginTop: 3 }}>&#9670; HIGH VALUE</div>}
                     </td>
                     <td style={{ padding: "14px 20px", fontSize: 16, fontWeight: 600, color: hv ? "#c6a36b" : "#e8dcc8" }}>{fmt(t.amount)}</td>
                     <td style={{ padding: "14px 20px" }}>
@@ -94,6 +220,7 @@ export default function LuxuryTheme({ transactions, processing, stats, superAdmi
           </table>
         </div>
       </div>
+      <style>{`@keyframes luxPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }`}</style>
     </div>
   );
 }

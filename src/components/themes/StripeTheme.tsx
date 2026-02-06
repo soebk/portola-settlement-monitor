@@ -10,7 +10,27 @@ const initials = (name: string) => name.split(" ").map((w) => w[0]).join("").sli
 const avatarColors = ["#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#3b82f6", "#ef4444", "#14b8a6"];
 const getColor = (name: string) => avatarColors[name.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % avatarColors.length];
 
-export default function StripeTheme({ transactions, processing, stats, superAdmin, onToggleSuperAdmin, onClearFunds, selected, onToggleSelect, onToggleSelectAll, onClearSelected, batchProcessing }: ThemeProps) {
+export default function StripeTheme({
+  transactions,
+  processing,
+  stats,
+  superAdmin,
+  onToggleSuperAdmin,
+  onClearFunds,
+  selected,
+  onToggleSelect,
+  onToggleSelectAll,
+  onClearSelected,
+  batchProcessing,
+  feedMode,
+  onFeedModeChange,
+  bufferCount,
+  onFlushBuffer,
+  isPaused,
+  onTableMouseEnter,
+  onTableMouseLeave,
+  onOpenThemePicker,
+}: ThemeProps) {
   const selectablePending = transactions.filter((t) => t.status === "Pending" && !(t.amount > HIGH_VALUE_THRESHOLD && !superAdmin));
   return (
     <div style={{ background: "#f8f9fb", fontFamily: "'DM Sans', -apple-system, sans-serif", minHeight: "100vh", color: "#1a1a2e" }}>
@@ -35,6 +55,39 @@ export default function StripeTheme({ transactions, processing, stats, superAdmi
               <div style={{ width: 18, height: 18, borderRadius: 9, background: "#fff", position: "absolute", top: 2, left: superAdmin ? 20 : 2, transition: "all 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.15)" }} />
             </div>
           </label>
+          <div style={{ width: 1, height: 20, background: "#e8eaed" }} />
+          <button
+            onClick={onOpenThemePicker}
+            title="Themes"
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 8,
+              background: "#f8f9fb",
+              border: "1px solid #e8eaed",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "all 0.15s",
+              color: "#64748b",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#eef2ff";
+              e.currentTarget.style.borderColor = "#c7d2fe";
+              e.currentTarget.style.color = "#6366f1";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "#f8f9fb";
+              e.currentTarget.style.borderColor = "#e8eaed";
+              e.currentTarget.style.color = "#64748b";
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="8" cy="8" r="2.5" />
+              <path d="M8 1.5v1.25M8 13.25v1.25M13.25 8h1.25M1.5 8h1.25M11.54 4.46l.88-.88M3.58 12.42l.88-.88M11.54 11.54l.88.88M3.58 3.58l.88.88" />
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -58,14 +111,104 @@ export default function StripeTheme({ transactions, processing, stats, superAdmi
         {/* Table */}
         <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e8eaed", overflow: "hidden" }}>
           <div style={{ padding: "18px 22px", borderBottom: "1px solid #f1f3f5", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontWeight: 600, fontSize: 15 }}>Transactions</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <span style={{ fontWeight: 600, fontSize: 15 }}>Transactions</span>
+              <span style={{ color: "#94a3b8", fontSize: 13 }}>/</span>
+              <span style={{ fontSize: 13, color: "#94a3b8" }}>{stats.total} total</span>
+
+              {/* Live/Paused indicator dot */}
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 4 }}>
+                <div
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: "50%",
+                    background: isPaused ? "#94a3b8" : feedMode === "streaming" ? "#10b981" : "#f59e0b",
+                    boxShadow: isPaused ? "none" : feedMode === "streaming" ? "0 0 6px rgba(16,185,129,0.5)" : "none",
+                    transition: "all 0.2s",
+                  }}
+                />
+                <span style={{ fontSize: 11, color: isPaused ? "#94a3b8" : "#64748b", fontWeight: 500 }}>
+                  {isPaused ? "Paused" : feedMode === "streaming" ? "Live" : "Manual"}
+                </span>
+              </div>
+            </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              {/* Live / Manual segmented toggle */}
+              <div style={{ display: "flex", background: "#f1f3f5", borderRadius: 8, padding: 2 }}>
+                <button
+                  onClick={() => onFeedModeChange("streaming")}
+                  style={{
+                    padding: "5px 12px",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    border: "none",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                    background: feedMode === "streaming" ? "#fff" : "transparent",
+                    color: feedMode === "streaming" ? "#6366f1" : "#94a3b8",
+                    boxShadow: feedMode === "streaming" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+                  }}
+                >
+                  Live
+                </button>
+                <button
+                  onClick={() => onFeedModeChange("manual")}
+                  style={{
+                    padding: "5px 12px",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    border: "none",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                    background: feedMode === "manual" ? "#fff" : "transparent",
+                    color: feedMode === "manual" ? "#6366f1" : "#94a3b8",
+                    boxShadow: feedMode === "manual" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+                  }}
+                >
+                  Manual
+                </button>
+              </div>
+
+              {/* Buffer badge */}
+              {bufferCount > 0 && (
+                <button
+                  onClick={onFlushBuffer}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                    background: "#eef2ff",
+                    color: "#6366f1",
+                    border: "1px solid #c7d2fe",
+                    padding: "5px 12px",
+                    borderRadius: 8,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#e0e7ff";
+                    e.currentTarget.style.borderColor = "#a5b4fc";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "#eef2ff";
+                    e.currentTarget.style.borderColor = "#c7d2fe";
+                  }}
+                >
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#6366f1", display: "inline-block" }} />
+                  {bufferCount} new
+                </button>
+              )}
+
               {selected.size > 0 && (
                 <button onClick={onClearSelected} disabled={batchProcessing} style={{ background: batchProcessing ? "#e0e7ff" : "#6366f1", color: "#fff", border: "none", padding: "6px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: batchProcessing ? "not-allowed" : "pointer" }}>
                   {batchProcessing ? "Processing..." : `Clear Selected (${selected.size})`}
                 </button>
               )}
-              <span style={{ fontSize: 12, color: "#94a3b8" }}>{stats.total} total</span>
             </div>
           </div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -79,7 +222,7 @@ export default function StripeTheme({ transactions, processing, stats, superAdmi
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody onMouseEnter={onTableMouseEnter} onMouseLeave={onTableMouseLeave}>
               {transactions.map((t) => {
                 const hv = t.amount > HIGH_VALUE_THRESHOLD;
                 const locked = hv && !superAdmin;

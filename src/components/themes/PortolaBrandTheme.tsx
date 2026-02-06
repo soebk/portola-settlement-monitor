@@ -6,7 +6,7 @@ import type { ThemeProps } from "./types";
 const fmt = (n: number) => "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtTime = (t: string) => new Date(t).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
 
-export default function PortolaBrandTheme({ transactions, processing, stats, superAdmin, onToggleSuperAdmin, onClearFunds, selected, onToggleSelect, onToggleSelectAll, onClearSelected, batchProcessing }: ThemeProps) {
+export default function PortolaBrandTheme({ transactions, processing, stats, superAdmin, onToggleSuperAdmin, onClearFunds, selected, onToggleSelect, onToggleSelectAll, onClearSelected, batchProcessing, feedMode, onFeedModeChange, bufferCount, onFlushBuffer, isPaused, onTableMouseEnter, onTableMouseLeave, onOpenThemePicker }: ThemeProps) {
   const selectablePending = transactions.filter((t) => t.status === "Pending" && !(t.amount > HIGH_VALUE_THRESHOLD && !superAdmin));
   const brand = "#6b9080";
   const brandDark = "#4a7260";
@@ -15,6 +15,7 @@ export default function PortolaBrandTheme({ transactions, processing, stats, sup
   return (
     <div style={{ display: "flex", minHeight: "100vh", fontFamily: "'Source Sans 3', -apple-system, sans-serif", color: "#2d3748", background: "#f5f7f6" }}>
       <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet" />
+      <style>{`@keyframes portolaPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
 
       {/* Sidebar */}
       <div style={{ width: 220, background: brand, color: "#fff", padding: "24px 0", display: "flex", flexDirection: "column", flexShrink: 0 }}>
@@ -23,9 +24,9 @@ export default function PortolaBrandTheme({ transactions, processing, stats, sup
           <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>Mission Control</div>
         </div>
         <div style={{ padding: "16px 0", flex: 1 }}>
-          {["transactions", "compliance", "analytics", "settings"].map((item) => (
-            <div key={item} style={{ padding: "10px 24px", cursor: "pointer", background: item === "transactions" ? "rgba(255,255,255,0.15)" : "transparent", borderLeft: item === "transactions" ? "3px solid #fff" : "3px solid transparent", fontSize: 14, fontWeight: item === "transactions" ? 600 : 400, textTransform: "capitalize" as const, transition: "all 0.15s" }}>
-              {item}
+          {["transactions", "compliance", "analytics", "settings", "themes"].map((item) => (
+            <div key={item} onClick={item === "themes" ? onOpenThemePicker : undefined} style={{ padding: "10px 24px", cursor: "pointer", background: item === "transactions" ? "rgba(255,255,255,0.15)" : "transparent", borderLeft: item === "transactions" ? "3px solid #fff" : "3px solid transparent", fontSize: 14, fontWeight: item === "transactions" ? 600 : 400, textTransform: "capitalize" as const, transition: "all 0.15s" }}>
+              {item === "themes" ? "\u2699 Themes" : item}
             </div>
           ))}
         </div>
@@ -60,12 +61,37 @@ export default function PortolaBrandTheme({ transactions, processing, stats, sup
         {/* Table */}
         <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8e5", overflow: "hidden" }}>
           <div style={{ padding: "16px 20px", borderBottom: "1px solid #e2e8e5", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontWeight: 700, fontSize: 16 }}>Transactions</span>
-            {selected.size > 0 && (
-              <button onClick={onClearSelected} disabled={batchProcessing} style={{ background: batchProcessing ? "#edf2f7" : brand, color: batchProcessing ? "#a0aec0" : "#fff", border: "none", padding: "6px 16px", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: batchProcessing ? "not-allowed" : "pointer" }}>
-                {batchProcessing ? "Processing..." : `Clear Selected (${selected.size})`}
-              </button>
-            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <span style={{ fontWeight: 700, fontSize: 16 }}>Transactions</span>
+              {/* Live / Paused indicator */}
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 500, color: isPaused ? "#a0aec0" : "#38a169" }}>
+                <span style={{ width: 7, height: 7, borderRadius: "50%", background: isPaused ? "#a0aec0" : "#38a169", boxShadow: isPaused ? "none" : "0 0 6px rgba(56,161,105,0.5)", animation: isPaused ? "none" : "portolaPulse 2s infinite" }} />
+                {isPaused ? "Paused" : "Live"}
+              </span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              {/* Live / Manual segmented toggle */}
+              <div style={{ display: "flex", borderRadius: 6, overflow: "hidden", border: "1px solid #e2e8e5" }}>
+                <button onClick={() => onFeedModeChange("streaming")} style={{ padding: "5px 12px", fontSize: 12, fontWeight: 600, border: "none", cursor: "pointer", background: feedMode === "streaming" ? brand : "#fff", color: feedMode === "streaming" ? "#fff" : "#718096", transition: "all 0.15s" }}>
+                  Live
+                </button>
+                <button onClick={() => onFeedModeChange("manual")} style={{ padding: "5px 12px", fontSize: 12, fontWeight: 600, border: "none", borderLeft: "1px solid #e2e8e5", cursor: "pointer", background: feedMode === "manual" ? brand : "#fff", color: feedMode === "manual" ? "#fff" : "#718096", transition: "all 0.15s" }}>
+                  Manual
+                </button>
+              </div>
+              {/* Buffer badge */}
+              {bufferCount > 0 && (
+                <button onClick={onFlushBuffer} style={{ background: brandLight, color: brand, border: "1px solid " + brand, padding: "4px 12px", borderRadius: 12, fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 0.15s" }}>
+                  {bufferCount} new
+                </button>
+              )}
+              {/* Batch clear */}
+              {selected.size > 0 && (
+                <button onClick={onClearSelected} disabled={batchProcessing} style={{ background: batchProcessing ? "#edf2f7" : brand, color: batchProcessing ? "#a0aec0" : "#fff", border: "none", padding: "6px 16px", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: batchProcessing ? "not-allowed" : "pointer" }}>
+                  {batchProcessing ? "Processing..." : `Clear Selected (${selected.size})`}
+                </button>
+              )}
+            </div>
           </div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
@@ -78,7 +104,7 @@ export default function PortolaBrandTheme({ transactions, processing, stats, sup
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody onMouseEnter={onTableMouseEnter} onMouseLeave={onTableMouseLeave}>
               {transactions.map((t) => {
                 const hv = t.amount > HIGH_VALUE_THRESHOLD;
                 const locked = hv && !superAdmin;

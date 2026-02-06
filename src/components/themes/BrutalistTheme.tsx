@@ -6,7 +6,27 @@ import type { ThemeProps } from "./types";
 const fmt = (n: number) => "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtTime = (t: string) => new Date(t).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
 
-export default function BrutalistTheme({ transactions, processing, stats, superAdmin, onToggleSuperAdmin, onClearFunds, selected, onToggleSelect, onToggleSelectAll, onClearSelected, batchProcessing }: ThemeProps) {
+export default function BrutalistTheme({
+  transactions,
+  processing,
+  stats,
+  superAdmin,
+  onToggleSuperAdmin,
+  onClearFunds,
+  selected,
+  onToggleSelect,
+  onToggleSelectAll,
+  onClearSelected,
+  batchProcessing,
+  feedMode,
+  onFeedModeChange,
+  bufferCount,
+  onFlushBuffer,
+  isPaused,
+  onTableMouseEnter,
+  onTableMouseLeave,
+  onOpenThemePicker,
+}: ThemeProps) {
   const selectablePending = transactions.filter((t) => t.status === "Pending" && !(t.amount > HIGH_VALUE_THRESHOLD && !superAdmin));
   return (
     <div style={{ background: "#fff", color: "#000", fontFamily: "'Space Grotesk', 'Helvetica Neue', sans-serif", minHeight: "100vh" }}>
@@ -23,10 +43,85 @@ export default function BrutalistTheme({ transactions, processing, stats, superA
           <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "#e00" }}>{stats.failed} FAILED</span>
           <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "#c90" }}>{stats.highValue} FLAGGED</span>
           <div style={{ height: 20, width: 1, background: "#ddd" }} />
+          <div onClick={onOpenThemePicker} style={{ cursor: "pointer", padding: "4px 12px", border: "2px solid #000", background: "#fff", color: "#000", fontSize: 11, fontWeight: 700, letterSpacing: "1px", transition: "all 0.15s", userSelect: "none" }}>
+            THEMES
+          </div>
           <div onClick={onToggleSuperAdmin} style={{ cursor: "pointer", padding: "4px 12px", border: "2px solid #000", background: superAdmin ? "#000" : "#fff", color: superAdmin ? "#fff" : "#000", fontSize: 11, fontWeight: 700, letterSpacing: "1px", transition: "all 0.15s", userSelect: "none" }}>
             {superAdmin ? "ADMIN: ON" : "ADMIN: OFF"}
           </div>
         </div>
+      </div>
+
+      {/* Streaming Controls */}
+      <div style={{ borderBottom: "2px solid #000", padding: "10px 32px", display: "flex", alignItems: "center", gap: 24 }}>
+        {/* Live / Manual segmented toggle */}
+        <div style={{ display: "flex", border: "2px solid #000" }}>
+          <div
+            onClick={() => onFeedModeChange("streaming")}
+            style={{
+              padding: "4px 14px",
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: "1px",
+              cursor: "pointer",
+              userSelect: "none",
+              fontFamily: "'Space Grotesk', sans-serif",
+              background: feedMode === "streaming" ? "#000" : "#fff",
+              color: feedMode === "streaming" ? "#fff" : "#000",
+              transition: "all 0.15s",
+            }}
+          >
+            LIVE
+          </div>
+          <div
+            onClick={() => onFeedModeChange("manual")}
+            style={{
+              padding: "4px 14px",
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: "1px",
+              cursor: "pointer",
+              userSelect: "none",
+              fontFamily: "'Space Grotesk', sans-serif",
+              borderLeft: "2px solid #000",
+              background: feedMode === "manual" ? "#000" : "#fff",
+              color: feedMode === "manual" ? "#fff" : "#000",
+              transition: "all 0.15s",
+            }}
+          >
+            MANUAL
+          </div>
+        </div>
+
+        {/* Buffer badge */}
+        {bufferCount > 0 && (
+          <div
+            onClick={onFlushBuffer}
+            style={{
+              padding: "4px 14px",
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: "1px",
+              cursor: "pointer",
+              userSelect: "none",
+              fontFamily: "'JetBrains Mono', monospace",
+              border: "2px solid #000",
+              background: "#000",
+              color: "#fff",
+              transition: "all 0.15s",
+            }}
+          >
+            {bufferCount} NEW
+          </div>
+        )}
+
+        {/* Spacer */}
+        <div style={{ flex: 1 }} />
+
+        {/* Live / Paused indicator */}
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 700, letterSpacing: "2px", color: isPaused ? "#888" : "#000" }}>
+          {isPaused ? "PAUSED" : "LIVE"}
+        </span>
       </div>
 
       {/* Batch clear */}
@@ -51,7 +146,7 @@ export default function BrutalistTheme({ transactions, processing, stats, superA
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody onMouseEnter={onTableMouseEnter} onMouseLeave={onTableMouseLeave}>
             {transactions.map((t) => {
               const isHv = t.amount > HIGH_VALUE_THRESHOLD;
               const locked = isHv && !superAdmin;

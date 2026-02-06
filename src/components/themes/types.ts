@@ -10,6 +10,8 @@ export interface ThemeStats {
   highValue: number;
 }
 
+export type FeedMode = "streaming" | "manual";
+
 export interface ThemeProps {
   transactions: Transaction[];
   processing: Set<string>;
@@ -23,6 +25,16 @@ export interface ThemeProps {
   onToggleSelectAll: () => void;
   onClearSelected: () => void;
   batchProcessing: boolean;
+  // Streaming
+  feedMode: FeedMode;
+  onFeedModeChange: (mode: FeedMode) => void;
+  bufferCount: number;
+  onFlushBuffer: () => void;
+  isPaused: boolean;
+  onTableMouseEnter: () => void;
+  onTableMouseLeave: () => void;
+  // Theme picker
+  onOpenThemePicker: () => void;
 }
 
 export type ThemeId = "default" | "terminal" | "stripe" | "luxury" | "brutalist" | "portola-brand";

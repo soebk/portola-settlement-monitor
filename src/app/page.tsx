@@ -388,6 +388,14 @@ export default function Home() {
     onToggleSelectAll: handleToggleSelectAll,
     onClearSelected: handleClearSelectedClick,
     batchProcessing,
+    feedMode,
+    onFeedModeChange: handleFeedModeChange,
+    bufferCount,
+    onFlushBuffer: flushBuffer,
+    isPaused,
+    onTableMouseEnter: handleTableMouseEnter,
+    onTableMouseLeave: handleTableMouseLeave,
+    onOpenThemePicker: () => setShowPicker(true),
   };
 
   // Alternate theme rendering
@@ -402,33 +410,9 @@ export default function Home() {
 
     return (
       <Suspense fallback={<div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0c0e12", color: "#555" }}>Loading theme…</div>}>
-        <div style={{ position: "relative" }}>
-          {/* Floating settings button for alternate themes */}
-          <button
-            onClick={() => setShowPicker(true)}
-            style={{
-              position: "fixed", bottom: 24, right: 24, zIndex: 100,
-              height: 44, borderRadius: 22, paddingLeft: 14, paddingRight: 18,
-              background: "rgba(0,0,0,0.8)", backdropFilter: "blur(12px)",
-              border: "1px solid rgba(255,255,255,0.15)",
-              color: "rgba(255,255,255,0.7)", cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              transition: "all 0.2s", boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
-              fontSize: 12, fontWeight: 600, fontFamily: "-apple-system, sans-serif", letterSpacing: "0.3px",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(0,0,0,0.92)"; e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(0,0,0,0.8)"; e.currentTarget.style.color = "rgba(255,255,255,0.7)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)"; }}
-            aria-label="Switch theme"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" strokeWidth="1.3" />
-              <path d="M13.5 8a5.5 5.5 0 0 1-.08.92l1.56 1.22a.37.37 0 0 1 .09.47l-1.48 2.56a.37.37 0 0 1-.45.16l-1.84-.74a5.47 5.47 0 0 1-1.59.92l-.28 1.96a.36.36 0 0 1-.36.31H6.13a.36.36 0 0 1-.36-.31l-.28-1.96a5.74 5.74 0 0 1-1.59-.92l-1.84.74a.36.36 0 0 1-.45-.16L.13 10.61a.36.36 0 0 1 .09-.47l1.56-1.22A5.62 5.62 0 0 1 1.7 8c0-.31.03-.62.08-.92L.22 5.86a.37.37 0 0 1-.09-.47l1.48-2.56a.37.37 0 0 1 .45-.16l1.84.74a5.47 5.47 0 0 1 1.59-.92l.28-1.96A.36.36 0 0 1 6.13.22h2.94c.18 0 .33.13.36.31l.28 1.96c.58.22 1.12.53 1.59.92l1.84-.74a.36.36 0 0 1 .45.16l1.48 2.56a.36.36 0 0 1-.09.47l-1.56 1.22c.05.3.08.61.08.92Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-            </svg>
-            Themes
-          </button>
-          <ThemeComponent {...sharedThemeProps} />
-          {showPicker && <ThemePicker current={uiTheme} onSelect={handleUiThemeChange} onClose={() => setShowPicker(false)} />}
-        </div>
+        <ThemeComponent {...sharedThemeProps} />
+        {showPicker && <ThemePicker current={uiTheme} onSelect={handleUiThemeChange} onClose={() => setShowPicker(false)} />}
+        {showConfirmClear && <ConfirmClearModal count={selected.size} onConfirm={handleBatchClear} onCancel={() => setShowConfirmClear(false)} />}
       </Suspense>
     );
   }

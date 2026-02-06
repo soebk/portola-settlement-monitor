@@ -6,7 +6,27 @@ import type { ThemeProps } from "./types";
 const fmt = (n: number) => "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtTime = (t: string) => new Date(t).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
 
-export default function TerminalTheme({ transactions, processing, stats, superAdmin, onToggleSuperAdmin, onClearFunds, selected, onToggleSelect, onToggleSelectAll, onClearSelected, batchProcessing }: ThemeProps) {
+export default function TerminalTheme({
+  transactions,
+  processing,
+  stats,
+  superAdmin,
+  onToggleSuperAdmin,
+  onClearFunds,
+  selected,
+  onToggleSelect,
+  onToggleSelectAll,
+  onClearSelected,
+  batchProcessing,
+  feedMode,
+  onFeedModeChange,
+  bufferCount,
+  onFlushBuffer,
+  isPaused,
+  onTableMouseEnter,
+  onTableMouseLeave,
+  onOpenThemePicker,
+}: ThemeProps) {
   const selectablePending = transactions.filter((t) => t.status === "Pending" && !(t.amount > HIGH_VALUE_THRESHOLD && !superAdmin));
   return (
     <div style={{ background: "#0a0e14", color: "#c5cdd9", fontFamily: "'IBM Plex Mono', 'Courier New', monospace", minHeight: "100vh", padding: "16px", fontSize: "13px" }}>
@@ -29,6 +49,36 @@ export default function TerminalTheme({ transactions, processing, stats, superAd
           >
             <div style={{ width: 14, height: 14, borderRadius: 7, background: superAdmin ? "#fff" : "#455568", position: "absolute", top: 1, left: superAdmin ? 19 : 1, transition: "all 0.2s" }} />
           </div>
+          <span style={{ color: "#2a3545", fontSize: "11px" }}>|</span>
+          <button
+            onClick={onOpenThemePicker}
+            style={{
+              background: "rgba(61,153,112,0.1)",
+              color: "#455568",
+              border: "1px solid #1e2836",
+              borderRadius: 3,
+              padding: "3px 8px",
+              fontSize: "11px",
+              letterSpacing: "1px",
+              cursor: "pointer",
+              fontFamily: "inherit",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "#3d9970";
+              e.currentTarget.style.color = "#3d9970";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "#1e2836";
+              e.currentTarget.style.color = "#455568";
+            }}
+          >
+            <span style={{ fontSize: "12px" }}>&#9881;</span>
+            <span>THEMES</span>
+          </button>
         </div>
       </div>
 
@@ -46,6 +96,89 @@ export default function TerminalTheme({ transactions, processing, stats, superAd
             <span style={{ color: s.color, fontWeight: 600, fontSize: "14px" }}>{s.value}</span>
           </div>
         ))}
+      </div>
+
+      {/* Streaming Controls */}
+      <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "12px", padding: "6px 10px", background: "#0f1520", border: "1px solid #1e2836", borderRadius: 4, fontSize: "11px" }}>
+        {/* Live / Manual segmented toggle */}
+        <div style={{ display: "flex", border: "1px solid #1e2836", borderRadius: 3, overflow: "hidden" }}>
+          <button
+            onClick={() => onFeedModeChange("streaming")}
+            style={{
+              background: feedMode === "streaming" ? "rgba(61,153,112,0.2)" : "transparent",
+              color: feedMode === "streaming" ? "#3d9970" : "#455568",
+              border: "none",
+              borderRight: "1px solid #1e2836",
+              padding: "3px 10px",
+              fontSize: "10px",
+              letterSpacing: "1px",
+              cursor: "pointer",
+              fontFamily: "inherit",
+              fontWeight: feedMode === "streaming" ? 600 : 400,
+              transition: "all 0.2s",
+            }}
+          >
+            LIVE
+          </button>
+          <button
+            onClick={() => onFeedModeChange("manual")}
+            style={{
+              background: feedMode === "manual" ? "rgba(61,153,112,0.2)" : "transparent",
+              color: feedMode === "manual" ? "#3d9970" : "#455568",
+              border: "none",
+              padding: "3px 10px",
+              fontSize: "10px",
+              letterSpacing: "1px",
+              cursor: "pointer",
+              fontFamily: "inherit",
+              fontWeight: feedMode === "manual" ? 600 : 400,
+              transition: "all 0.2s",
+            }}
+          >
+            MANUAL
+          </button>
+        </div>
+
+        {/* Buffer badge */}
+        {bufferCount > 0 && (
+          <button
+            onClick={onFlushBuffer}
+            style={{
+              background: "rgba(242,201,76,0.12)",
+              color: "#f2c94c",
+              border: "1px solid rgba(242,201,76,0.3)",
+              borderRadius: 3,
+              padding: "2px 8px",
+              fontSize: "10px",
+              letterSpacing: "1px",
+              cursor: "pointer",
+              fontFamily: "inherit",
+              fontWeight: 600,
+              animation: "pulse 2s infinite",
+              transition: "all 0.2s",
+            }}
+          >
+            {bufferCount} NEW
+          </button>
+        )}
+
+        {/* Live / Paused indicator */}
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginLeft: "auto" }}>
+          <span
+            style={{
+              display: "inline-block",
+              width: 7,
+              height: 7,
+              borderRadius: "50%",
+              background: isPaused ? "#e67e22" : "#3d9970",
+              boxShadow: isPaused ? "0 0 4px rgba(230,126,34,0.5)" : "0 0 6px rgba(61,153,112,0.6)",
+              animation: isPaused ? "none" : "pulse 2s infinite",
+            }}
+          />
+          <span style={{ color: isPaused ? "#e67e22" : "#3d9970", fontSize: "10px", letterSpacing: "1px" }}>
+            {isPaused ? "PAUSED" : "LIVE"}
+          </span>
+        </div>
       </div>
 
       {/* Batch clear */}
@@ -70,7 +203,7 @@ export default function TerminalTheme({ transactions, processing, stats, superAd
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody onMouseEnter={onTableMouseEnter} onMouseLeave={onTableMouseLeave}>
             {transactions.map((t, i) => {
               const isHighValue = t.amount > HIGH_VALUE_THRESHOLD;
               const isLocked = isHighValue && !superAdmin;
