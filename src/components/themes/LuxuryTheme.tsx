@@ -65,7 +65,7 @@ export default function LuxuryTheme({ transactions, processing, stats, superAdmi
                     <td style={{ padding: "14px 20px" }}>
                       {t.status === "Pending" && (
                         <button onClick={() => !locked && onClearFunds(t.id)} disabled={isProcessing || locked} style={{ background: locked ? "transparent" : isProcessing ? "rgba(198,163,107,0.1)" : "linear-gradient(135deg, #c6a36b, #a07d45)", color: locked ? "#4a5568" : "#0b1121", border: locked ? "1px solid #2a3545" : "none", padding: "7px 20px", borderRadius: 4, fontFamily: "'Outfit', sans-serif", fontSize: 11, fontWeight: 600, letterSpacing: "1px", cursor: locked ? "not-allowed" : "pointer", transition: "all 0.2s" }}>
-                          {locked ? "RESTRICTED" : isProcessing ? "PROCESSING..." : "SEND FUNDS"}
+                          {locked ? "RESTRICTED" : isProcessing ? "CLEARING..." : "CLEAR FUNDS"}
                         </button>
                       )}
                     </td>

@@ -60,7 +60,7 @@ export default function BrutalistTheme({ transactions, processing, stats, superA
                   <td style={{ padding: "10px 0", textAlign: "right" }}>
                     {t.status === "Pending" && (
                       <button onClick={() => !locked && onClearFunds(t.id)} disabled={isProcessing || locked} style={{ background: locked ? "#fff" : "#000", color: locked ? "#aaa" : "#fff", border: locked ? "1px solid #ddd" : "2px solid #000", padding: "5px 16px", fontSize: 11, fontWeight: 700, letterSpacing: "1px", cursor: locked ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "all 0.1s" }}>
-                        {locked ? "LOCKED" : isProcessing ? "..." : "SEND →"}
+                        {locked ? "LOCKED" : isProcessing ? "..." : "CLEAR →"}
                       </button>
                     )}
                   </td>

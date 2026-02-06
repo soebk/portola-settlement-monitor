@@ -112,7 +112,7 @@ export default function StripeTheme({ transactions, processing, stats, superAdmi
                             cursor: locked ? "not-allowed" : "pointer", transition: "all 0.15s",
                           }}
                         >
-                          {locked ? "🔒 Locked" : isProcessing ? "Sending..." : "Send Funds"}
+                          {locked ? "🔒 Locked" : isProcessing ? "Clearing..." : "Clear Funds"}
                         </button>
                       )}
                     </td>

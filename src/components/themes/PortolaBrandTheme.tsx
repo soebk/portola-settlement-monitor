@@ -92,7 +92,7 @@ export default function PortolaBrandTheme({ transactions, processing, stats, sup
                     <td style={{ padding: "11px 20px" }}>
                       {t.status === "Pending" && (
                         <button onClick={() => !locked && onClearFunds(t.id)} disabled={isProcessing || locked} style={{ background: locked ? "#edf2f7" : brand, color: locked ? "#a0aec0" : "#fff", border: "none", padding: "6px 16px", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: locked ? "not-allowed" : "pointer", transition: "all 0.15s" }}>
-                          {locked ? "🔒 Locked" : isProcessing ? "Sending..." : "Send Funds"}
+                          {locked ? "🔒 Locked" : isProcessing ? "Clearing..." : "Clear Funds"}
                         </button>
                       )}
                     </td>

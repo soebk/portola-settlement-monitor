@@ -98,7 +98,7 @@ export default function TerminalTheme({ transactions, processing, stats, superAd
                           cursor: isLocked ? "not-allowed" : "pointer", fontFamily: "inherit",
                         }}
                       >
-                        {isLocked ? "🔒 LOCKED" : isProcessing ? "SENDING..." : "SEND"}
+                        {isLocked ? "🔒 LOCKED" : isProcessing ? "CLEARING..." : "CLEAR FUNDS"}
                       </button>
                     )}
                   </td>
